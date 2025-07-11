@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { EditInterestsDialog } from "@/components/edit-interests-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { useEffect, useState, useCallback } from "react";
+import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
@@ -26,7 +26,14 @@ async function getRecentQuestions(userId: string): Promise<Question[]> {
   const querySnapshot = await getDocs(q);
   const questions: Question[] = [];
   querySnapshot.forEach((doc) => {
-    questions.push({ id: doc.id, ...doc.data() } as Question);
+    const data = doc.data();
+    const createdAt = data.createdAt;
+    questions.push({ 
+      id: doc.id, 
+      ...data,
+      // Ensure createdAt is a string for consistent rendering
+      createdAt: createdAt instanceof Timestamp ? createdAt.toDate().toISOString() : new Date().toISOString()
+    } as Question);
   });
   return questions;
 }
@@ -37,17 +44,28 @@ export default function ProfilePage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchQuestions = useCallback(async () => {
     if (user?.uid) {
       setQuestionsLoading(true);
-      getRecentQuestions(user.uid)
-        .then(setQuestions)
-        .finally(() => setQuestionsLoading(false));
+      try {
+        const fetchedQuestions = await getRecentQuestions(user.uid);
+        setQuestions(fetchedQuestions);
+      } catch (error) {
+        console.error("Failed to fetch questions:", error);
+      } finally {
+        setQuestionsLoading(false);
+      }
     }
-  }, [user]);
+  }, [user?.uid]);
 
-  const onInterestsUpdate = (newInterests: string[]) => {
-    updateUser({ interestTags: newInterests });
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  const onInterestsUpdate = async (newInterests: string[]) => {
+    if (user) {
+      await updateUser({ ...user, interestTags: newInterests });
+    }
   };
 
 
