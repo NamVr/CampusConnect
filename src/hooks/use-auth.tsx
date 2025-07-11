@@ -1,68 +1,89 @@
 "use client"
 
-import type { User, Question } from "@/types";
+import type { User as AppUser } from "@/types";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { getAuth, onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
-// Mock user data for demonstration purposes
-const MOCK_USER: User = {
-  uid: "mock-user-123",
-  displayName: "Alex Doe",
-  email: "alex.doe@example.com",
-  photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&h=100&auto=format&fit=crop",
-  interestTags: ["Machine Learning", "Web Development", "Data Science"],
-  bookmarkedEvents: ["event-1"],
-};
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
+  firebaseUser: FirebaseUser | null;
   loading: boolean;
-  updateUser: (user: User | null) => void;
+  updateUser: (user: Partial<AppUser>) => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  firebaseUser: null,
   loading: true,
   updateUser: () => {},
+  signOut: async () => {},
 });
 
-// Since we don't have a real backend, we'll use localStorage to simulate persistence.
-const LOCAL_STORAGE_USER_KEY = 'campusconnect_user';
-
 export const AuthProviderComponent = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  useEffect(() => {
-    // Simulate fetching user data from local storage
-    setTimeout(() => {
-      try {
-        const savedUser = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        } else {
-          // If no user in storage, use the mock user and save it
-          setUser(MOCK_USER);
-          localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(MOCK_USER));
-        }
-      } catch (error) {
-        // If something goes wrong, default to mock user
-        setUser(MOCK_USER);
-      } finally {
-        setLoading(false);
+  const handleUser = useCallback(async (rawUser: FirebaseUser | null) => {
+    if (rawUser) {
+      setFirebaseUser(rawUser);
+      const userRef = doc(db, 'users', rawUser.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data() as AppUser;
+        setUser(userData);
+      } else {
+        // First time login, create user doc
+        const newUser: AppUser = {
+          uid: rawUser.uid,
+          displayName: rawUser.displayName,
+          email: rawUser.email,
+          photoURL: rawUser.photoURL,
+          interestTags: ["Machine Learning", "Web Development"], // Default interests
+          bookmarkedEvents: [],
+        };
+        await setDoc(userRef, newUser);
+        setUser(newUser);
       }
-    }, 1000);
-  }, []);
-
-  const updateUser = useCallback((updatedUser: User | null) => {
-    setUser(updatedUser);
-    if (updatedUser) {
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(updatedUser));
+      setLoading(false);
     } else {
-      localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+      setUser(null);
+      setFirebaseUser(null);
+      setLoading(false);
     }
   }, []);
 
-  const value = { user, loading, updateUser };
+  const updateUser = useCallback(async (updatedData: Partial<AppUser>) => {
+    if (user) {
+        const newUserData = { ...user, ...updatedData };
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, newUserData, { merge: true });
+        setUser(newUserData);
+    }
+  }, [user]);
+
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    await firebaseSignOut(auth);
+    setUser(null);
+    setFirebaseUser(null);
+    setLoading(false);
+    router.push('/login');
+  }, [router]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, handleUser);
+    return () => unsubscribe();
+  }, [handleUser]);
+
+  const value = { user, firebaseUser, loading, updateUser, signOut };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -10,20 +10,25 @@ import { EditInterestsDialog } from "@/components/edit-interests-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-// This is now a client-side "fetcher" function.
-// In a real app, this would be a server action or an API call.
+
 async function getRecentQuestions(userId: string): Promise<Question[]> {
-  console.log(`Fetching questions for user ${userId}`);
-  // In a real app, you would fetch from Firestore here.
-  // For now, let's simulate a fetch and use localStorage to persist questions.
-  await new Promise(resolve => setTimeout(resolve, 500)); 
-  const history = localStorage.getItem('questionHistory');
-  if (history) {
-    const allQuestions: Question[] = JSON.parse(history);
-    return allQuestions.filter(q => q.userId === userId).slice(0, 5);
-  }
-  return [];
+  if (!userId) return [];
+  const q = query(
+    collection(db, "questions"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc"),
+    limit(5)
+  );
+  
+  const querySnapshot = await getDocs(q);
+  const questions: Question[] = [];
+  querySnapshot.forEach((doc) => {
+    questions.push({ id: doc.id, ...doc.data() } as Question);
+  });
+  return questions;
 }
 
 
@@ -33,7 +38,7 @@ export default function ProfilePage() {
   const [questionsLoading, setQuestionsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    if (user?.uid) {
       setQuestionsLoading(true);
       getRecentQuestions(user.uid)
         .then(setQuestions)
@@ -42,9 +47,7 @@ export default function ProfilePage() {
   }, [user]);
 
   const onInterestsUpdate = (newInterests: string[]) => {
-    if (user) {
-        updateUser({ ...user, interestTags: newInterests });
-    }
+    updateUser({ interestTags: newInterests });
   };
 
 
