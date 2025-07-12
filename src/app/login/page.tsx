@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"
-import { auth } from "@/lib/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { GraduationCap, Loader2 } from "lucide-react"
@@ -14,20 +12,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    setError(null)
-    const provider = new GoogleAuthProvider()
-    try {
-      await signInWithPopup(auth, provider)
-      router.push("/dashboard")
-    } catch (error: any) {
-      setError(error.message)
-      console.error("Error during Google sign-in:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleSignIn = async () => {
+    setIsLoading(true);
+    // Simulate a sign-in process
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1000);
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -61,7 +52,7 @@ export default function LoginPage() {
              </div>
             <CardTitle className="text-2xl font-headline">Sign In</CardTitle>
             <CardDescription>
-              Use your Google account to access your dashboard.
+              Click below to access your dashboard.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -71,7 +62,7 @@ export default function LoginPage() {
               </p>
             )}
             <Button
-              onClick={handleGoogleSignIn}
+              onClick={handleSignIn}
               disabled={isLoading}
               className="w-full"
             >

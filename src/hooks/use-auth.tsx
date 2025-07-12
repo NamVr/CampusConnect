@@ -1,16 +1,22 @@
 "use client"
 
 import type { User as AppUser } from "@/types";
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { getAuth, onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+
+// Mock user data
+const MOCK_USER: AppUser = {
+  uid: 'user-1',
+  displayName: 'Alex Doe',
+  email: 'alex.doe@example.com',
+  photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&h=100&auto=format&fit=crop',
+  interestTags: ['Machine Learning', 'Web Development', 'Python'],
+  bookmarkedEvents: ['event-1', 'event-3'],
+};
 
 
 interface AuthContextType {
   user: AppUser | null;
-  firebaseUser: FirebaseUser | null;
   loading: boolean;
   updateUser: (user: Partial<AppUser>) => void;
   signOut: () => Promise<void>;
@@ -18,72 +24,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  firebaseUser: null,
-  loading: true,
+  loading: false,
   updateUser: () => {},
   signOut: async () => {},
 });
 
 export const AuthProviderComponent = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AppUser | null>(MOCK_USER);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  const handleUser = useCallback(async (rawUser: FirebaseUser | null) => {
-    if (rawUser) {
-      setFirebaseUser(rawUser);
-      const userRef = doc(db, 'users', rawUser.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data() as AppUser;
-        setUser(userData);
-      } else {
-        // First time login, create user doc
-        const newUser: AppUser = {
-          uid: rawUser.uid,
-          displayName: rawUser.displayName,
-          email: rawUser.email,
-          photoURL: rawUser.photoURL,
-          interestTags: ["Machine Learning", "Web Development"], // Default interests
-          bookmarkedEvents: [],
-        };
-        await setDoc(userRef, newUser);
-        setUser(newUser);
-      }
-      setLoading(false);
-    } else {
-      setUser(null);
-      setFirebaseUser(null);
-      setLoading(false);
-    }
-  }, []);
 
   const updateUser = useCallback(async (updatedData: Partial<AppUser>) => {
     if (user) {
         const newUserData = { ...user, ...updatedData };
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, newUserData, { merge: true });
         setUser(newUserData);
     }
   }, [user]);
 
   const signOut = useCallback(async () => {
-    setLoading(true);
-    await firebaseSignOut(auth);
     setUser(null);
-    setFirebaseUser(null);
-    setLoading(false);
     router.push('/login');
   }, [router]);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, handleUser);
-    return () => unsubscribe();
-  }, [handleUser]);
-
-  const value = { user, firebaseUser, loading, updateUser, signOut };
+  const value = { user, firebaseUser: null, loading, updateUser, signOut };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
