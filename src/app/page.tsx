@@ -1,12 +1,9 @@
-"use client";
-
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { GraduationCap } from "lucide-react"
 
 export default function LandingPage() {
-  
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm sticky top-0 z-50">
@@ -16,21 +13,21 @@ export default function LandingPage() {
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link
-            href="/login"
+            href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
             prefetch={false}
           >
             Features
           </Link>
           <Link
-            href="/login"
+            href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
             prefetch={false}
           >
             About
           </Link>
           <Link
-            href="/login"
+            href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
             prefetch={false}
           >
@@ -53,7 +50,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg">
-                    <Link href="/login">Get Started</Link>
+                    <Link href="/dashboard">Get Started</Link>
                   </Button>
                 </div>
               </div>

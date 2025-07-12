@@ -9,33 +9,21 @@ import { Button } from "@/components/ui/button";
 import { EditInterestsDialog } from "@/components/edit-interests-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Loader2 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
-import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useEffect, useState } from "react";
 
-
+// This is now a client-side "fetcher" function.
+// In a real app, this would be a server action or an API call.
 async function getRecentQuestions(userId: string): Promise<Question[]> {
-  if (!userId) return [];
-  const q = query(
-    collection(db, "questions"),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc"),
-    limit(5)
-  );
-  
-  const querySnapshot = await getDocs(q);
-  const questions: Question[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    const createdAt = data.createdAt;
-    questions.push({ 
-      id: doc.id, 
-      ...data,
-      // Ensure createdAt is a string for consistent rendering
-      createdAt: createdAt instanceof Timestamp ? createdAt.toDate().toISOString() : new Date().toISOString()
-    } as Question);
-  });
-  return questions;
+  console.log(`Fetching questions for user ${userId}`);
+  // In a real app, you would fetch from Firestore here.
+  // For now, let's simulate a fetch and use localStorage to persist questions.
+  await new Promise(resolve => setTimeout(resolve, 500)); 
+  const history = localStorage.getItem('questionHistory');
+  if (history) {
+    const allQuestions: Question[] = JSON.parse(history);
+    return allQuestions.filter(q => q.userId === userId).slice(0, 5);
+  }
+  return [];
 }
 
 
@@ -44,27 +32,18 @@ export default function ProfilePage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
 
-  const fetchQuestions = useCallback(async () => {
-    if (user?.uid) {
-      setQuestionsLoading(true);
-      try {
-        const fetchedQuestions = await getRecentQuestions(user.uid);
-        setQuestions(fetchedQuestions);
-      } catch (error) {
-        console.error("Failed to fetch questions:", error);
-      } finally {
-        setQuestionsLoading(false);
-      }
-    }
-  }, [user?.uid]);
-
   useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
-
-  const onInterestsUpdate = async (newInterests: string[]) => {
     if (user) {
-      await updateUser({ ...user, interestTags: newInterests });
+      setQuestionsLoading(true);
+      getRecentQuestions(user.uid)
+        .then(setQuestions)
+        .finally(() => setQuestionsLoading(false));
+    }
+  }, [user]);
+
+  const onInterestsUpdate = (newInterests: string[]) => {
+    if (user) {
+        updateUser({ ...user, interestTags: newInterests });
     }
   };
 

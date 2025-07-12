@@ -1,34 +1,29 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export async function updateInterests(interests: string[]) {
-  // The actual update now happens on the client via the useAuth hook
-  // This action just serves to revalidate paths
+  // In a real app, you would update the user's interests in Firestore.
+  console.log("Updating interests to:", interests);
+
+  // Simulate a delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
   revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/collaborators");
+
 
   return { success: true };
 }
 
 export async function addQuestionToHistory(userId: string, question: string, answer: string) {
-    if (!userId || !question || !answer) {
-        return { success: false, error: "Missing required fields." };
-    }
-    try {
-        await addDoc(collection(db, "questions"), {
-            userId,
-            question,
-            answer,
-            createdAt: serverTimestamp(),
-        });
-        revalidatePath("/profile");
-        return { success: true };
-    } catch (error) {
-        console.error("Error adding question to history:", error);
-        return { success: false, error: "Failed to save question." };
-    }
+    // In a real app, you would save the question to Firestore.
+    // We are simulating this by logging and using a delay.
+    // The actual storage to localStorage is now handled on the client-side
+    // where this function is called, to avoid server/client context issues.
+    console.log(`Adding question for user ${userId}:`, { question, answer });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    revalidatePath("/profile");
+    return { success: true };
 }

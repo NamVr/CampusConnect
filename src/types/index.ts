@@ -1,5 +1,3 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface User {
   uid: string;
   displayName: string | null;
@@ -24,5 +22,5 @@ export interface Question {
   userId: string;
   question: string;
   answer: string;
-  createdAt: string | Timestamp;
+  createdAt: string;
 }

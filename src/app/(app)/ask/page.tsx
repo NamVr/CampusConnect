@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { addQuestionToHistory } from '@/actions/user';
+import type { Question } from '@/types';
 
 
 type Suggestion = string;
@@ -41,7 +42,20 @@ export default function AskPage() {
       
       setAnswer(askResult.answer);
       setSuggestions(suggestionsResult.suggestions);
+
+      // Save question to our simulated DB (localStorage)
+      const newQuestion: Question = {
+        id: new Date().toISOString(),
+        userId: user.uid,
+        question: query,
+        answer: askResult.answer,
+        createdAt: new Date().toISOString(),
+      };
+      const history = JSON.parse(localStorage.getItem('questionHistory') || '[]');
+      history.unshift(newQuestion);
+      localStorage.setItem('questionHistory', JSON.stringify(history));
       
+      // Notify server to revalidate paths
       await addQuestionToHistory(user.uid, query, askResult.answer);
 
     } catch (error) {
@@ -55,6 +69,9 @@ export default function AskPage() {
 
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
+    // Optional: automatically submit the new query
+    // setQuery(suggestion);
+    // handleAsk();
   }
 
   return (

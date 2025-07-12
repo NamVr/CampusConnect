@@ -30,7 +30,7 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { user, signOut } = useAuth();
+  const { user } = useAuth()
 
   return (
     <SidebarProvider>
@@ -76,7 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/profile"><Settings className="mr-2 h-4 w-4" /><span>Settings</span></Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>
+              <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
