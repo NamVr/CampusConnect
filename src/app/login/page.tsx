@@ -18,6 +18,10 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
     const provider = new GoogleAuthProvider()
+    // Explicitly setting the authDomain can sometimes resolve stubborn auth issues.
+    provider.setCustomParameters({
+      auth_domain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    });
     try {
       await signInWithPopup(auth, provider)
       router.push("/dashboard")
