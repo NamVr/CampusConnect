@@ -14,9 +14,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Log the configuration to the browser console for debugging
+if (typeof window !== "undefined") {
+    console.log("Firebase Config:", firebaseConfig);
+}
+
 // Validate that all required Firebase config values are present
 for (const [key, value] of Object.entries(firebaseConfig)) {
   if (!value) {
+    // This will now throw a more specific error if an env var is missing.
     throw new Error(`Firebase config error: Missing value for ${key}. Please check your .env file.`);
   }
 }
